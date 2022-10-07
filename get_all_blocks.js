@@ -1,4 +1,4 @@
-const request = require('request-promise-native');
+const fetch = require('node-fetch');
 var block_id, temp_remove;
 
 var api_key = items[0].json.api_key;
@@ -26,22 +26,19 @@ do {
     }
 
     // Get Children
-    const options = {
-        url: `https://api.notion.com/v1/blocks/${block_id}/children?page_size=100`,
-        method: 'GET',
-        headers: {
+    const url = `https://api.notion.com/v1/blocks/${block_id}/children?page_size=100`;
+    const headers = {
             "Accept": "application/json",
             "Notion-Version": "2022-06-28",
             "Authorization": api_key
-        },
-        json: true,
     };
 
     // Append Response
-    const response = await request(options);
+    const response = await fetch(url, { method: 'GET', headers: headers});
+    const data = await response.json();
     
     let temp = [];
-    response.results.forEach(element => {
+    data.results.forEach(element => {
         temp = temp.concat(element);
     })
     tasks = temp.concat(tasks);
