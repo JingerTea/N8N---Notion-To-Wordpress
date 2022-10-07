@@ -1,0 +1,396 @@
+{
+  "name": "Notion to Wordpress (Manual)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "3a137dc1-c45b-4539-8308-cace5d277b37",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "api_key",
+              "value": "secret_1YtYltRO2VybEzV8vdJDgxh8RJ6ZUf17YEhoKGjm1MS"
+            },
+            {
+              "name": "page_id",
+              "value": "={{$node[\"SplitInBatches\"].json[\"id\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8581fec8-2990-40bd-8fae-89159a2604cd",
+      "name": "Set",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "function convert(block_type) {\n    let blocks;\n    let text_html = \"\";\n    if (block_type.rich_text) {\n        blocks = block_type.rich_text;\n    } else {\n        blocks = block_type;\n    }\n\n    // Convert block to html\n    blocks.forEach(element => {\n        style_html = element.plain_text;\n\n        if (element.href) {\n            const link = element.href;\n            style_html = `<a href=\"${link}\" target=\"_blank\">${style_html}</a>`;\n        }\n        if (element.annotations.bold){\n            style_html = `<strong>${style_html}</strong>`;\n        }\n        if (element.annotations.italic){\n            style_html = `<em>${style_html}</em>`;\n        }\n        if (element.annotations.strikethrough){\n            style_html = `<span style=\"text-decoration: line-through;\">${style_html}</span>`;\n        }\n        if (element.annotations.underline){\n            style_html = `<span style=\"text-decoration: underline;\">${style_html}</span>`;\n        }\n        if (element.annotations.code) {\n            style_html = `<code>${style_html}</code>`;\n        }\n        if (element.annotations.color) {\n            switch (element.annotations.color) {\n                case 'gray':\n                    style_html = `<span style=\"color:rgba(120, 119, 116, 1);fill:rgba(120, 119, 116, 1)\">${style_html}</span>`;\n                    break;\n                case 'brown':\n                    style_html = `<span style=\"color:rgba(159, 107, 83, 1);fill:rgba(159, 107, 83, 1)\">${style_html}</span>`;\n                    break;\n                case 'orange':\n                    style_html = `<span style=\"color:rgba(217, 115, 13, 1);fill:rgba(217, 115, 13, 1)\">${style_html}</span>`;\n                    break;\n                case 'yellow':\n                    style_html = `<span style=\"color:rgba(203, 145, 47, 1);fill:rgba(203, 145, 47, 1)\">${style_html}</span>`;\n                    break;\n                case 'green':\n                    style_html = `<span style=\"color:rgba(68, 131, 97, 1);fill:rgba(68, 131, 97, 1)\">${style_html}</span>`;\n                    break;\n                case 'blue':\n                    style_html = `<span style=\"color:rgba(51, 126, 169, 1);fill:rgba(51, 126, 169, 1)\">${style_html}</span>`;\n                    break;\n                case 'purple':\n                    style_html = `<span style=\"color:rgba(144, 101, 176, 1);fill:rgba(144, 101, 176, 1)\">${style_html}</span>`;\n                    break;\n                case 'pink':\n                    style_html = `<span style=\"color:rgba(193, 76, 138, 1);fill:rgba(193, 76, 138, 1)\">${style_html}</span>`;\n                    break;\n                case 'red':\n                    style_html = `<span style=\"color:rgba(212, 76, 71, 1);fill:rgba(212, 76, 71, 1)\">${style_html}</span>`;\n                    break;\n                case 'gray_background':\n                    style_html = `<span style=\"background:rgba(241, 241, 239, 1)\">${style_html}</span>`;\n                    break;\n                case 'brown_background':\n                    style_html = `<span style=\"background:rgba(244, 238, 238, 1)\">${style_html}</span>`;\n                    break;\n                case 'orange_background':\n                    style_html = `<span style=\"background:rgba(251, 236, 221, 1)\">${style_html}</span>`;\n                    break;\n                case 'yellow_background':\n                    style_html = `<span style=\"background:rgba(251, 243, 219, 1)\">${style_html}</span>`;\n                    break;\n                case 'green_background':\n                    style_html = `<span style=\"background:rgba(237, 243, 236, 1)\">${style_html}</span>`;\n                    break;\n                case 'blue_background':\n                    style_html = `<span style=\"background:rgba(231, 243, 248, 1)\" >${style_html}</span>`;\n                    break;\n                case 'purple_background':\n                    style_html = `<span style=\"background:rgba(244, 240, 247, 0.8)\" >${style_html}</span>`;\n                    break;\n                case 'pink_background':\n                    style_html = `<span style=\"background:rgba(249, 238, 243, 0.8)\" >${style_html}</span>`;\n                    break;\n                case 'red_background':\n                    style_html = `<span style=\"background:rgba(253, 235, 236, 1)\" >${style_html}</span>`;\n                    break;\n            }\n        }\n        text_html += style_html;\n    })\n    return text_html;\n}\n\n\nlet html = \"\";\nlet block_html, title, id, link;\n\nitems.forEach(element => {\n    let block = element.json;\n    let block_html = \"\";\n\n    switch (block.type) {\n        case 'paragraph':\n            text_html = convert(block.paragraph);\n            block_html = `<p>${text_html}</p>`;\n            break;\n\n        case 'child_page':\n            title = block.child_page.title;\n            id = block.parent_id;\n            link = `https://www.notion.so/${id}`;\n            block_html = `<p><a href=\"${link}\" >${title}</a></p>`;\n            break;\n\n        case 'to_do':\n            text_html = convert(block.to_do);\n            block_html = `<ul><li>${text_html}</li></ul>`;\n            break\n\n        case 'heading_1':\n            text_html = convert(block.heading_1);\n            block_html = `<h1>${text_html}</h1>`;\n            break;\n\n        case 'heading_2':\n            text_html = convert(block.heading_2);\n            block_html = `<h2>${text_html}</h2>`;\n            break;\n\n        case 'heading_3':\n            text_html = convert(block.heading_3);\n            block_html = `<h3>${text_html}</h3>`;\n            break;\n\n        case 'table':\n            block_html = `<figure class=\"wp-block-table\"><table><tbody></tbody></table></figure>`\n            break;\n\n        case 'table_row':\n            end_tag = \"</tbody></table></figure>\";\n            if (html.endsWith(end_tag)) {\n                const length = html.length - end_tag.length;\n                html = html.substring(0, length);\n            }\n\n            block.table_row.cells.forEach(element => {\n                text_html = convert(element)\n                block_html += `<td>${text_html}</td>`;\n            })\n            block_html = `<tr>${block_html}</tr></tbody></table></figure>`;\n            break;\n\n\n        case 'bulleted_list_item':\n            text_html = convert(block.bulleted_list_item);\n            block_html = `<ul><li>${text_html}</li></ul>`;\n            break;\n\n        case 'numbered_list_item':\n            text_html = convert(block.numbered_list_item);\n            block_html = `<ol><li>${text_html}</li></ol>`;\n            break;\n\n        case 'toggle':\n            text_html = convert(block.toggle);\n            block_html = `<ul class=\"is-style-arrow\"><li>${text_html}</li></ul>`;\n            break;\n\n        case 'quote':\n            text_html = convert(block.quote);\n            block_html = `<blockquote class=\"wp-block-quote\"><p>${text_html}</p></blockquote>`;\n            break;\n\n        case 'divider':\n            block_html = `<hr class=\"wp-block-separator has-alpha-channel-opacity\"/>`\n            break;\n\n        case 'unsupported':\n            block_html = `<p><span style=\"background-color:#cf2e2e\">*** Link page not supported ***</span></p>`\n            break;\n\n        case 'callout':\n            text_html = convert(block.callout);\n            block_html = `<blockquote class=\"wp-block-quote\"><p>${text_html}</p></blockquote>`;\n            break;\n\n        case 'child_database':\n            block_html = `<p><span style=\"background-color:#cf2e2e\">*** Database not supported ***</span></p>`\n            break;\n\n        case 'image':\n            link = block.image.file.url;\n            block_html = `<p><img class=\"alignnone size-full\" src=\"${link}\" /></p>`;\n            break;\n\n        case 'code':\n            text_html = convert(block.code);\n            block_html = `<pre class=\"wp-block-code\"><code>${text_html}</code></pre>`;\n            break;\n\n        case 'equation':\n            block_html = `<p><span style=\"background-color:#cf2e2e\">*** Equation not supported ***</span></p>`\n            break;\n\n        case `video`:\n            block_html = block.video.external.url;\n            block_html = `<p><a href=\"${block_html}\">${block_html}</a></p>`\n            break;\n\n        case `bookmark`:\n            block_html = block.bookmark.url;\n            block_html = `<p><a href=\"${block_html}\">${block_html}</a></p>`\n            break;\n    }\n    html += block_html;\n})\n\nhtml = html.replace(/<\\/ul><ul>/g, '').replace(/<\\/ol><ol>/g, '');\nreturn [{\n  json: {\n    \"Output\": html\n    }\n}];"
+      },
+      "id": "673be142-6e57-49c7-b028-9d5a587ba203",
+      "name": "Conver to HTML",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const request = require('request-promise-native');\nvar block_id, temp_remove;\n\nvar api_key = items[0].json.api_key;\n\nlet tasks = [];\nlet new_items = [];\nvar count = 1;\n\ndo {\n    // Initalize\n    if (count == 1){\n        block_id = items[0].json.page_id;\n    } \n    // Handle previous Response\n    else {\n        if (tasks[0].has_children == true) {\n            block_id = tasks[0].id;\n            new_items = new_items.concat(tasks[0]);\n            temp_remove = tasks.shift();\n        } else if (tasks[0].has_children == false) {\n            new_items = new_items.concat(tasks[0]);\n            temp_remove = tasks.shift();\n            continue;\n        }\n    }\n\n    // Get Children\n    const options = {\n        url: `https://api.notion.com/v1/blocks/${block_id}/children?page_size=100`,\n        method: 'GET',\n        headers: {\n            \"Accept\": \"application/json\",\n            \"Notion-Version\": \"2022-06-28\",\n            \"Authorization\": api_key\n        },\n        json: true,\n    };\n\n    // Append Response\n    const response = await request(options);\n    \n    let temp = [];\n    response.results.forEach(element => {\n        temp = temp.concat(element);\n    })\n    tasks = temp.concat(tasks);\n    count += 1;\n\n} while (tasks.length !== 0);\n\nreturn new_items;\n"
+      },
+      "id": "64551060-e381-46f0-b3d8-64380248dd4b",
+      "name": "Get All Blocks",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "0941af9e-3245-4dfd-99b1-928da3ae7792",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "38183c7a-6f0e-4171-80d7-35dc4f396fd4",
+      "name": "Get All Pages",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "1",
+          "name": "Jing's Notion"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "840ebb57-32e5-461c-a129-1c7beecc08ab",
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"SplitInBatches\"].context[\"currentRunIndex\"]}}",
+              "value2": "={{$node[\"SplitInBatches\"].context[\"maxRunIndex\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "27c907a7-ff61-4074-9d9d-16aaa1b74faa",
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2700,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json[\"property_synchronize\"] }}",
+              "value2": "🔴 Not Sync"
+            }
+          ]
+        }
+      },
+      "id": "3b104f61-80ff-4774-98cd-8f16b92da615",
+      "name": "IF Synced",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"SplitInBatches\"].json[\"property_wordpress_id\"]}}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "c2ff7f70-9ec2-45f2-89c9-7292e8b90d6a",
+      "name": "IF Post Exist",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "title": "={{$node[\"SplitInBatches\"].json[\"name\"]}}",
+        "additionalFields": {
+          "content": "={{$node[\"Conver to HTML\"].json[\"Output\"]}}",
+          "status": "draft",
+          "tags": [
+            3
+          ]
+        }
+      },
+      "id": "b1beb4dc-4ca4-42e7-b333-6a6f9b159522",
+      "name": "Create New Post",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        220
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "2",
+          "name": "Jing's Wordpress"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "postId": "={{$node[\"SplitInBatches\"].json[\"property_wordpress_id\"]}}",
+        "updateFields": {
+          "title": "={{$node[\"SplitInBatches\"].json[\"name\"]}}",
+          "content": "={{$node[\"Conver to HTML\"].json[\"Output\"]}}",
+          "status": "={{$node[\"SplitInBatches\"].json[\"property_status\"].toLowerCase()}}",
+          "tags": [
+            3
+          ]
+        }
+      },
+      "id": "bdc20833-1fce-47e8-9022-2dc36e746181",
+      "name": "Update Post",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        400
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "2",
+          "name": "Jing's Wordpress"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{$node[\"SplitInBatches\"].json[\"id\"]}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Wordpress ID|number",
+              "numberValue": "={{ $json[\"id\"] }}"
+            }
+          ]
+        }
+      },
+      "id": "9f96f161-882f-449a-9423-eeea108bf56a",
+      "name": "Update Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        320
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "1",
+          "name": "Jing's Notion"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create New Post": {
+      "main": [
+        [
+          {
+            "node": "Update Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Post": {
+      "main": [
+        [
+          {
+            "node": "Update Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Page": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Synced": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set": {
+      "main": [
+        [
+          {
+            "node": "Get All Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Blocks": {
+      "main": [
+        [
+          {
+            "node": "Conver to HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conver to HTML": {
+      "main": [
+        [
+          {
+            "node": "IF Post Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Post Exist": {
+      "main": [
+        [
+          {
+            "node": "Create New Post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Pages": {
+      "main": [
+        [
+          {
+            "node": "IF Synced",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get All Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "id": 2,
+  "meta": {
+    "instanceId": "ee285a15d24ee02735f3d6536329e4315fe75cb376b397eddff0b41d9c986e80"
+  },
+  "tags": []
+}
