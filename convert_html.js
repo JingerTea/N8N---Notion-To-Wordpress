@@ -1,9 +1,10 @@
-let html = "";
-let block_html, title, id, link;
+let block_dict = [], html = "";
 
-function convert(block_type) {
-    let blocks;
-    let text_html = "";
+// Convert text to html with style
+function text_to_html(block_type) {
+    let blocks, text_html = "";
+
+    // Identify block text
     if (block_type.rich_text) {
         blocks = block_type.rich_text;
     } else {
@@ -11,30 +12,30 @@ function convert(block_type) {
     }
 
     // Convert block to html
-    blocks.forEach(element => {
-        style_html = element.plain_text;
+    blocks.forEach(block => {
+        style_html = block.plain_text;
 
-        if (element.href) {
-            const link = element.href;
+        if (block.href) {
+            const link = block.href;
             style_html = `<a href="${link}" target="_blank">${style_html}</a>`;
         }
-        if (element.annotations.bold){
+        if (block.annotations.bold){
             style_html = `<strong>${style_html}</strong>`;
         }
-        if (element.annotations.italic){
+        if (block.annotations.italic){
             style_html = `<em>${style_html}</em>`;
         }
-        if (element.annotations.strikethrough){
+        if (block.annotations.strikethrough){
             style_html = `<span style="text-decoration: line-through;">${style_html}</span>`;
         }
-        if (element.annotations.underline){
+        if (block.annotations.underline){
             style_html = `<span style="text-decoration: underline;">${style_html}</span>`;
         }
-        if (element.annotations.code) {
+        if (block.annotations.code) {
             style_html = `<code>${style_html}</code>`;
         }
-        if (element.annotations.color) {
-            switch (element.annotations.color) {
+        if (block.annotations.color) {
+            switch (block.annotations.color) {
                 case 'gray':
                     style_html = `<span style="color:rgba(120, 119, 116, 1);fill:rgba(120, 119, 116, 1)">${style_html}</span>`;
                     break;
@@ -96,41 +97,81 @@ function convert(block_type) {
     return text_html;
 }
 
-function notion_to_html(items) {
-    items.forEach(element => {
-        let block = element.json;
-        let block_html = "";
+// Clean end tags and add new end tags
+function get_tags (block, start_tag, end_tag){
+    // Define variable
+    let id, new_start_tag, new_end_tag = "";
 
+    // Get Block ID
+    if (block.parent.page_id) {
+        id = block.parent.page_id;
+    } else if (block.parent.block_id) {
+        id = block.parent.block_id;
+    }
+    let type = block.type;
+
+    // If dictionary contains block ID as key, remove items after it add 1 to order
+    if (block_dict[id] !== undefined && block_dict[id][0] === block.type) {
+        let id_list = Object.keys(block_dict);
+        let index = id_list.indexOf(id);
+        let last_index = id_list.length;
+        id_list = id_list.slice(index + 1, last_index);
+        id_list.forEach(id => delete block_dict[id]);
+        block_dict[id][1] += 1;
+        // If array does not contain block ID, append ID to list
+    } else {
+        block_dict[id] = [type, 1];
+    }
+    const level = Object.keys(block_dict).length;
+    const order = block_dict[id][1];
+
+    // Remove ending tag if it exists
+    for(let i = 0; i < level; i++){
+        if(html.endsWith(end_tag)){
+            let index = html.lastIndexOf(end_tag);
+            html = html.substring(0, index);
+            new_end_tag += end_tag;
+        }
+    }
+
+    if (order === 1) {
+        new_start_tag = start_tag;
+        new_end_tag += end_tag;
+    } else {
+        new_start_tag = "";
+    }
+    return [new_start_tag, new_end_tag];
+}
+
+function notion_to_html(blocks) {
+    let id, link, block_html, text_html, start_tag, end_tag, new_start_tag, new_end_tag;
+    blocks.forEach(element => {
+        let block = element.json;
         switch (block.type) {
             case 'paragraph':
-                text_html = convert(block.paragraph);
+                text_html = text_to_html(block.paragraph);
                 block_html = `<p>${text_html}</p>`;
                 break;
 
             case 'child_page':
-                title = block.child_page.title;
+                let title = block.child_page.title;
                 id = block.parent_id;
                 link = `https://www.notion.so/${id}`;
                 block_html = `<p><a href="${link}" >${title}</a></p>`;
                 break;
 
-            case 'to_do':
-                text_html = convert(block.to_do);
-                block_html = `<ul><li>${text_html}</li></ul>`;
-                break
-
             case 'heading_1':
-                text_html = convert(block.heading_1);
+                text_html = text_to_html(block.heading_1);
                 block_html = `<h1>${text_html}</h1>`;
                 break;
 
             case 'heading_2':
-                text_html = convert(block.heading_2);
+                text_html = text_to_html(block.heading_2);
                 block_html = `<h2>${text_html}</h2>`;
                 break;
 
             case 'heading_3':
-                text_html = convert(block.heading_3);
+                text_html = text_to_html(block.heading_3);
                 block_html = `<h3>${text_html}</h3>`;
                 break;
 
@@ -146,30 +187,49 @@ function notion_to_html(items) {
                 }
 
                 block.table_row.cells.forEach(element => {
-                    text_html = convert(element)
+                    text_html = text_to_html(element)
                     block_html += `<td>${text_html}</td>`;
                 })
                 block_html = `<tr>${block_html}</tr></tbody></table></figure>`;
                 break;
 
+                // Need fix
+            case 'to_do':
+                text_html = text_to_html(block.to_do);
+                start_tag = "<ul>";
+                end_tag = "</ul>";
+                [new_start_tag, new_end_tag] = get_tags(block, start_tag, end_tag);
+                block_html = new_start_tag + `<li>${text_html}</li>` + new_end_tag;
+                break
 
             case 'bulleted_list_item':
-                text_html = convert(block.bulleted_list_item);
-                block_html = `<ul><li>${text_html}</li></ul>`;
+                text_html = text_to_html(block.bulleted_list_item.rich_text);
+                start_tag = "<ul>";
+                end_tag = "</ul>";
+                [new_start_tag, new_end_tag] = get_tags(block, start_tag, end_tag);
+                block_html = new_start_tag + `<li>${text_html}</li>` + new_end_tag;
+
                 break;
 
             case 'numbered_list_item':
-                text_html = convert(block.numbered_list_item);
-                block_html = `<ol><li>${text_html}</li></ol>`;
+                text_html = text_to_html(block.numbered_list_item);
+                start_tag = "<ol>";
+                end_tag = "</ol>";
+                [new_start_tag, new_end_tag] = get_tags(block, start_tag, end_tag);
+                block_html = new_start_tag + `<li>${text_html}</li>` + new_end_tag;
+
                 break;
 
             case 'toggle':
-                text_html = convert(block.toggle);
-                block_html = `<ul class="is-style-arrow"><li>${text_html}</li></ul>`;
+                text_html = text_to_html(block.toggle);
+                start_tag = "<ul class=\"is-style-arrow\">";
+                end_tag = "</ul>";
+                [new_start_tag, new_end_tag] = get_tags(block, start_tag, end_tag);
+                block_html = new_start_tag + `<li>${text_html}</li>` + new_end_tag;
                 break;
 
             case 'quote':
-                text_html = convert(block.quote);
+                text_html = text_to_html(block.quote);
                 block_html = `<blockquote class="wp-block-quote"><p>${text_html}</p></blockquote>`;
                 break;
 
@@ -182,7 +242,7 @@ function notion_to_html(items) {
                 break;
 
             case 'callout':
-                text_html = convert(block.callout);
+                text_html = text_to_html(block.callout);
                 block_html = `<blockquote class="wp-block-quote"><p>${text_html}</p></blockquote>`;
                 break;
 
@@ -196,7 +256,7 @@ function notion_to_html(items) {
                 break;
 
             case 'code':
-                text_html = convert(block.code);
+                text_html = text_to_html(block.code);
                 block_html = `<pre class="wp-block-code"><code>${text_html}</code></pre>`;
                 break;
 
@@ -216,7 +276,6 @@ function notion_to_html(items) {
         }
         html += block_html;
     })
-    html = html.replace(/<\/ul><ul>/g, '').replace(/<\/ol><ol>/g, '');
     return html;
 }
 
