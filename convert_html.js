@@ -223,6 +223,6 @@ function notion_to_html(items) {
 result = notion_to_html(items);
 return [{
   json: {
-    "Output": html
+    "Output": result
     }
 }];
