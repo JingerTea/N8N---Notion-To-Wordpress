@@ -158,10 +158,11 @@ function get_tags (block, start_tag, end_tag){
 
 function notion_to_html(blocks) {
     let id, link, text_html, start_tag, end_tag, new_start_tag, new_end_tag;
-    blocks.forEach(block => {
+    blocks.forEach(element => {
+        let block = element.json;
         let block_html = "";
 
-        console.log(block);
+        // console.log(block);
         switch (block.type) {
             case 'paragraph':
                 text_html = text_to_html(block.paragraph);
@@ -234,7 +235,7 @@ function notion_to_html(blocks) {
                 break;
 
             case 'numbered_list_item':
-                text_html = text_to_html(block.numbered_lis t_item);
+                text_html = text_to_html(block.numbered_list_item);
                 start_tag = "<ol>";
                 end_tag = "</ol>";
                 [new_start_tag, new_end_tag] = get_tags(block, start_tag, end_tag);
@@ -297,7 +298,7 @@ function notion_to_html(blocks) {
                 block_html = `<p><a href="${block_html}">${block_html}</a></p>`
                 break;
         }
-        console.log(block_html);
+        // console.log(block_html);
         html += block_html;
         // console.log("HTML: " + html);
     })
