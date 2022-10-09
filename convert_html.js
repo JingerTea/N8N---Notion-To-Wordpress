@@ -100,14 +100,15 @@ function text_to_html(block_type) {
 // Clean end tags and add new end tags
 function get_tags (block, start_tag, end_tag){
     // Define variable
-    let id, new_start_tag, new_end_tag = "";
+    let id, remove_tag, new_start_tag = "", new_end_tag = "";
 
-    // Get Block ID
+    // Get block ID
     if (block.parent.page_id) {
         id = block.parent.page_id;
     } else if (block.parent.block_id) {
         id = block.parent.block_id;
     }
+    // Get block type
     let type = block.type;
 
     // If dictionary contains block ID as key, remove items after it add 1 to order
@@ -118,35 +119,49 @@ function get_tags (block, start_tag, end_tag){
         id_list = id_list.slice(index + 1, last_index);
         id_list.forEach(id => delete block_dict[id]);
         block_dict[id][1] += 1;
-        // If array does not contain block ID, append ID to list
+        // If dictionary does not contain block ID, append ID to dictionary
     } else {
-        block_dict[id] = [type, 1];
+        block_dict[id] = [type, 1, end_tag];
     }
-    const level = Object.keys(block_dict).length;
+
+    let level = Object.keys(block_dict).length;
     const order = block_dict[id][1];
 
-    // Remove ending tag if it exists
-    for(let i = 0; i < level; i++){
-        if(html.endsWith(end_tag)){
-            let index = html.lastIndexOf(end_tag);
+    // If the block is the first type in the level
+    if (order === 1) {
+        level -= 1;
+    }
+
+    const keys = Object.keys(block_dict);
+
+    for(let i = 0; i < level; i++) {
+        let remove_tag = block_dict[keys[i]][2];
+        if (html.endsWith(remove_tag)) {
+            let index = html.lastIndexOf(remove_tag);
+            // console.log("Remove Tag: " + remove_tag);
             html = html.substring(0, index);
-            new_end_tag += end_tag;
+            new_end_tag = remove_tag + new_end_tag;
         }
     }
 
+    // Analyze tags
     if (order === 1) {
         new_start_tag = start_tag;
-        new_end_tag += end_tag;
-    } else {
-        new_start_tag = "";
-    }
+        new_end_tag = end_tag + new_end_tag;
+        }
+    // console.log("Remove HTML: " + html);
+    // console.log("=============")
+
+
     return [new_start_tag, new_end_tag];
 }
 
 function notion_to_html(blocks) {
-    let id, link, block_html, text_html, start_tag, end_tag, new_start_tag, new_end_tag;
-    blocks.forEach(element => {
-        let block = element.json;
+    let id, link, text_html, start_tag, end_tag, new_start_tag, new_end_tag;
+    blocks.forEach(block => {
+        let block_html = "";
+
+        console.log(block);
         switch (block.type) {
             case 'paragraph':
                 text_html = text_to_html(block.paragraph);
@@ -196,10 +211,17 @@ function notion_to_html(blocks) {
                 // Need fix
             case 'to_do':
                 text_html = text_to_html(block.to_do);
+
                 start_tag = "<ul>";
                 end_tag = "</ul>";
+                if (block.to_do.checked){
+                    block_html = `<li><input type="checkbox" checked/> <label>text_html</label></li>`
+                } else {
+                    block_html = `<li><input type="checkbox"/> <label>text_html</label></li>`
+                }
+
                 [new_start_tag, new_end_tag] = get_tags(block, start_tag, end_tag);
-                block_html = new_start_tag + `<li>${text_html}</li>` + new_end_tag;
+                block_html = new_start_tag + block_html + new_end_tag;
                 break
 
             case 'bulleted_list_item':
@@ -212,7 +234,7 @@ function notion_to_html(blocks) {
                 break;
 
             case 'numbered_list_item':
-                text_html = text_to_html(block.numbered_list_item);
+                text_html = text_to_html(block.numbered_lis t_item);
                 start_tag = "<ol>";
                 end_tag = "</ol>";
                 [new_start_tag, new_end_tag] = get_tags(block, start_tag, end_tag);
@@ -261,7 +283,8 @@ function notion_to_html(blocks) {
                 break;
 
             case 'equation':
-                block_html = `<p><span style="background-color:#cf2e2e">*** Equation not supported ***</span></p>`
+                const equation = block.equation.expression;
+                block_html = `<p><span style="background-color:#cf2e2e"> ${equation} </span></p>`
                 break;
 
             case `video`:
@@ -274,7 +297,9 @@ function notion_to_html(blocks) {
                 block_html = `<p><a href="${block_html}">${block_html}</a></p>`
                 break;
         }
+        console.log(block_html);
         html += block_html;
+        // console.log("HTML: " + html);
     })
     return html;
 }
